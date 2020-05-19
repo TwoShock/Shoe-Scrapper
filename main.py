@@ -15,7 +15,6 @@ def getItemData(item:dict)->list:
     -------------------------
     a list containing all the relevant item data
     """
-
     brand = item['item']['brand']
     color = item['item']['color']
     model = item['item']['model']
@@ -26,7 +25,14 @@ def getItemData(item:dict)->list:
     currency = item['item']['offers']['priceCurrency']
     return [name,model,color,brand,releaseDate,lowPrice,highPrice,currency]
 
-#def createDataFrame(itemData:list)->pandas:
+def getColumnData(itemsData,index):
+    return [itemsData[i][index] for i in range(len(itemsData))]
+
+def createDataFrame(itemsData:list):
+    keys = ['Name','Model','Color','Brand','Release Date','Low Price','High Price','Currency']
+    values = [getColumnData(itemsData,i) for i in range(len(itemsData[0]))]
+    return pd.DataFrame({keys[i]:values[i] for i in range(len(keys))})
+
 def main():
     with open('index.html') as file:
        html = soup(file,'lxml')
@@ -36,7 +42,8 @@ def main():
     
     items = data['itemListElement']
     itemsData = [getItemData(item) for item in items]
-
+    df = createDataFrame(itemsData)
+    df.to_csv('output.csv')
 
 if __name__ == "__main__":
     main()
