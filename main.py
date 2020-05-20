@@ -6,6 +6,8 @@ import json
 import requests
 import argparse
 import os.path
+import glob
+import numpy as np
 def getItemData(item:dict)->list:
     """
     Parameters:
@@ -17,14 +19,38 @@ def getItemData(item:dict)->list:
     -------------------------
     a list containing all the relevant item data
     """
-    brand = item['item']['brand']
-    color = item['item']['color']
-    model = item['item']['model']
-    name = item['item']['name']
-    releaseDate = item['item']['releaseDate']
-    lowPrice = item['item']['offers']['lowPrice']
-    highPrice = item['item']['offers']['lowPrice']
-    currency = item['item']['offers']['priceCurrency']
+    try:
+        brand = item['item']['brand']
+    except:
+        brand = np.nan
+    try:
+        color = item['item']['color']
+    except:
+        color = np.nan
+    try:
+        model = item['item']['model']
+    except:
+        model = np.nan
+    try:
+        name = item['item']['name']
+    except:
+        name = np.nan
+    try:
+        releaseDate = item['item']['releaseDate']
+    except:
+        releaseDate = np.nan
+    try:
+        lowPrice = item['item']['offers']['lowPrice']
+    except:
+        lowPrice = np.nan
+    try:
+        highPrice = item['item']['offers']['highPrice']
+    except:
+        highPrice = np.nan
+    try:
+        currency = item['item']['offers']['priceCurrency']
+    except:
+        currency = np.nan
     return [name,model,color,brand,releaseDate,lowPrice,highPrice,currency]
 
 def getColumnData(itemsData,index):
@@ -61,12 +87,13 @@ def scrapeHTML(html):
     """"
     Parameters:
     ----------------
-    html: raw html page txt
+    html: parsed html page txt
     Function: scrapes the page and returns a pandas dataframe containing the item data
     Returns:
     ----------------
     pandas dataframe of the given html page
     """
+    
     json_container = html.find_all("script",type="application/ld+json")
     data = ''
     for conatiner in json_container:
@@ -95,23 +122,47 @@ def scrapePages(startPage,endPage):
     for i in range(startPage,endPage):
         currentPage = base_url + str(i)
         html = requests.get(currentPage).content
+        html = soup(html,'lxml')
         currentPageDF = scrapeHTML(html)
         frames.append(currentPageDF)
     return pd.concat(frames,axis=0)
+def scrapeDownloadedPages(path):
+    """
+    Parameter:
+    -------------
+    path: path to directory contianing html pages
 
+    """
+    files = [f for f in glob.glob(path+'/*.html')]
+    frames = []
+    for file in files:
+        with open(file) as f:
+            try:
+                html = soup(f,'lxml')
+                frames.append(scrapeHTML(html))
+            except:
+                print('Unable to scrape page ',file)
+    result = pd.concat(frames)
+    return result
 def main():
-    parser = argparse.ArgumentParser(description='Shoe Scrapper for https://stockx.com/')
+    # parser = argparse.ArgumentParser(description='Shoe Scrapper for https://stockx.com/')
 
-    parser.add_argument('--start',type=int,help='Starting index of page you want to scrape from.',required=True)
-    parser.add_argument('--end',type=int,help='End index of page you want to scrape to.',required=True)
-    parser.add_argument('--o',type=str,help='Location of the output file you want to store your scraped results.(MUST BE CSV)',required=True)
+    # parser.add_argument('--start',type=int,help='Starting index of page you want to scrape from.',required=True)
+    # parser.add_argument('--end',type=int,help='End index of page you want to scrape to.',required=True)
+    # parser.add_argument('--o',type=str,help='Location of the output file you want to store your scraped results.(MUST BE CSV)',required=True)
     
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    df = scrapePages(args.start,args.end)
-    if(os.path.isfile(args.o)):
-        df.to_csv(args.o,mode='a',header=False)
-    else:
-        df.to_csv(args.o)
+    # df = scrapePages(args.start,args.end)
+    # if(os.path.isfile(args.o)):
+    #     df.to_csv(args.o,mode='a',header=False)
+    # else:
+    #     df.to_csv(args.o)
+
+  
+    #Roman comment the below two lines and uncomment the above lines when you want to run.
+    
+    result = scrapeDownloadedPages('./html')
+    result.to_csv('out.csv')
 if __name__ == "__main__":
     main()
