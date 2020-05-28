@@ -14,7 +14,7 @@ def getItemData(item:dict)->list:
     -----------------------
     item:dictionary containing item data
     function: extracts the neccessary json data
-    
+
     Returns:
     -------------------------
     a list containing all the relevant item data
@@ -69,11 +69,11 @@ def createDataFrame(itemsData:list):
     """
     Parameters:
     --------------------
-    
+
     itemsData: list of lists containing the items data
-    
+
     Function: Combine the lists into one pandas dataframe object
-    
+
     Returns:
     -------------------
     panda dataframe containing all item data
@@ -93,8 +93,9 @@ def scrapeHTML(html):
     ----------------
     pandas dataframe of the given html page
     """
-    
+
     json_container = html.find_all("script",type="application/ld+json")
+    # print(html)
     data = ''
     for conatiner in json_container:
         data = json.loads(conatiner.string.extract())
@@ -121,10 +122,15 @@ def scrapePages(startPage,endPage):
     frames = []
     for i in range(startPage,endPage):
         currentPage = base_url + str(i)
-        html = requests.get(currentPage).content
+        # html = requests.get(currentPage).content
+        req = Request(url = currentPage,headers=headers)
+        html = urlopen(req).read()
         html = soup(html,'lxml')
-        currentPageDF = scrapeHTML(html)
-        frames.append(currentPageDF)
+        try:
+            currentPageDF = scrapeHTML(html)
+            frames.append(currentPageDF)
+        except:
+            print('Unable to scrape page ',i)
     return pd.concat(frames,axis=0)
 def scrapeDownloadedPages(path):
     """
@@ -145,24 +151,19 @@ def scrapeDownloadedPages(path):
     result = pd.concat(frames)
     return result
 def main():
-    # parser = argparse.ArgumentParser(description='Shoe Scrapper for https://stockx.com/')
+    parser = argparse.ArgumentParser(description='Shoe Scrapper for https://stockx.com/')
 
-    # parser.add_argument('--start',type=int,help='Starting index of page you want to scrape from.',required=True)
-    # parser.add_argument('--end',type=int,help='End index of page you want to scrape to.',required=True)
-    # parser.add_argument('--o',type=str,help='Location of the output file you want to store your scraped results.(MUST BE CSV)',required=True)
-    
-    # args = parser.parse_args()
+    parser.add_argument('--start',type=int,help='Starting index of page you want to scrape from.',required=True)
+    parser.add_argument('--end',type=int,help='End index of page you want to scrape to.',required=True)
+    parser.add_argument('--o',type=str,help='Location of the output file you want to store your scraped results.(MUST BE CSV)',required=True)
+    args = parser.parse_args()
 
-    # df = scrapePages(args.start,args.end)
-    # if(os.path.isfile(args.o)):
-    #     df.to_csv(args.o,mode='a',header=False)
-    # else:
-    #     df.to_csv(args.o)
-
-  
-    #Roman comment the below two lines and uncomment the above lines when you want to run.
-    
-    result = scrapeDownloadedPages('./html')
-    result.to_csv('out.csv')
+    df = scrapePages(args.start,args.end)
+    if(os.path.isfile(args.o)):
+        df.to_csv(args.o,mode='a',header=False)
+    else:
+        df.to_csv(args.o)
+    # result = scrapeDownloadedPages('./html')
+    # result.to_csv('out.csv')
 if __name__ == "__main__":
     main()
